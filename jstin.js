@@ -53,17 +53,20 @@ function _(elementSelector) {
 }
 
 /*
- * Some global variables needed for drag and drop
+ * A global object needed for drag and drop
  */
 
-var _draggingHasStarted = false;
-var _draggingElement = null;
-var _draggingElementOffsetX = 0;
-var _draggingElementOffsetY = 0;
-var _draggingOrigPosition = {x:0,y:0};
-var _draggingElementOrigStyle = null;
-var _draggingUserOffsetX = 0;
-var _draggingUserOffsetY = 0;
+var _dragging = {
+	"aboutToFinish" : false,
+	"hasStarted" : false,
+	"element" : null,
+	"elementOffsetX" : 0,
+	"elementOffsetY" : 0,
+	"origPosition" : {"x":0,"y":0},
+	"elementOrigStyle" : null,
+	"userOffsetX" : 0,
+	"userOffsetY" : 0
+};
 
 
 function Element(element) {
@@ -236,47 +239,49 @@ function Element(element) {
     	this.forEveryElement(this);
     	
     	this.onMouseDown(function(e) {
-    		if(!_draggingHasStarted) {
-    			_draggingUserOffsetX = userOffsetX;
-	    		_draggingUserOffsetY = userOffsetY;
-	    		_draggingElement = _(e.currentTarget).clone().getDomElement();
-	    		_(e.currentTarget.parentNode).appendElement(_draggingElement);
-	    		_draggingElementOrigStyle = _draggingElement.getAttribute("style"); 
+    		if(!_dragging.hasStarted) {
+    			_dragging.userOffsetX = userOffsetX;
+	    		_dragging.userOffsetY = userOffsetY;
+	    		_dragging.element = _(e.currentTarget).clone().getDomElement();
+	    		_(e.currentTarget.parentNode).appendElement(_dragging.element);
+	    		_dragging.elementOrigStyle = _dragging.element.getAttribute("style"); 
 	    		e.preventDefault();
-	    		_draggingHasStarted = true;
+	    		_dragging.hasStarted = true;
 	    		var pos = _(e.currentTarget).getPosition();
 	    		var mouse = getMousePosition(e);
-	    		_draggingElementOffsetX = mouse.x - pos.x;
-	    		_draggingElementOffsetY = mouse.y - pos.y;
-	    		_draggingElement.style.opacity = 0.7;
-	    		_draggingOrigPosition.x = pos.x + _draggingUserOffsetX;
-	    		_draggingOrigPosition.y = pos.y + _draggingUserOffsetY;
-	    		_(_draggingElement).moveTo(_draggingOrigPosition.x,_draggingOrigPosition.y);
+	    		_dragging.elementOffsetX = mouse.x - pos.x;
+	    		_dragging.elementOffsetY = mouse.y - pos.y;
+	    		_dragging.element.style.opacity = 0.7;
+	    		_dragging.origPosition.x = pos.x + _dragging.userOffsetX;
+	    		_dragging.origPosition.y = pos.y + _dragging.userOffsetY;
+	    		_(_dragging.element).moveTo(_dragging.origPosition.x,_dragging.origPosition.y);
 	    	}
     	});
     	
     	_(document).onMouseUp(function(e) {
-    		if(_draggingHasStarted) {	    		
+    		if(_dragging.hasStarted) {
+    			_dragging.aboutToFinish = true;	    		
 	   			var endFunction = function() {
 			    	// restore old style
-			    	_draggingElement.setAttribute("style",_draggingElementOrigStyle);
-			   		_(_draggingElement).remove();
-			   		_draggingHasStarted = false;
+			    	_dragging.element.setAttribute("style",_dragging.elementOrigStyle);
+			   		_(_dragging.element).remove();
+			   		_dragging.hasStarted = false;
+			   		_dragging.aboutToFinish = false;
 			    }
 	    		// slide back to the original position
-	    		_(_draggingElement).slideToWithOffset(_draggingOrigPosition.x,_draggingOrigPosition.y,_draggingUserOffsetX,_draggingUserOffsetY,endFunction);
+	    		_(_dragging.element).slideToWithOffset(_dragging.origPosition.x,_dragging.origPosition.y,_dragging.userOffsetX,_dragging.userOffsetY,endFunction);
 	    	}
     	});
     	
     	_(document).onMouseMove(function(e) {
     		e.preventDefault();
-    		if(_draggingHasStarted) {
-    			var pos = _(_draggingElement).getPosition();
+    		if(_dragging.hasStarted && !_dragging.aboutToFinish) {
+    			var pos = _(_dragging.element).getPosition();
     			var mouse = getMousePosition(e);
-	    		var x = mouse.x - _draggingElementOffsetX + _draggingUserOffsetX;
-	    		var y = mouse.y - _draggingElementOffsetY + _draggingUserOffsetY;
+	    		var x = mouse.x - _dragging.elementOffsetX + _dragging.userOffsetX;
+	    		var y = mouse.y - _dragging.elementOffsetY + _dragging.userOffsetY;
 	    		
-	    		_(_draggingElement).moveTo(x,y);
+	    		_(_dragging.element).moveTo(x,y);
 	    	}
     	});
     	return this;
